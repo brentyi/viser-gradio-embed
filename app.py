@@ -8,7 +8,8 @@ from viser_proxy_manager import ViserProxyManager
 
 
 def main() -> None:
-    viser_manager = ViserProxyManager()
+    app = fastapi.FastAPI()
+    viser_manager = ViserProxyManager(app)
 
     # Create a Gradio interface with title, iframe, and buttons
     with gr.Blocks(title="Viser Viewer") as demo:
@@ -62,9 +63,8 @@ def main() -> None:
             assert request.session_hash is not None
             viser_manager.stop_server(request.session_hash)
 
-    demo.launch(prevent_thread_lock=True)
-    viser_manager.setup(demo.app)
-    demo.block_thread()
+    gr.mount_gradio_app(app, demo, "/")
+    uvicorn.run(app, host="0.0.0.0", port=7860)
 
 
 if __name__ == "__main__":
