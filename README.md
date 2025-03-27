@@ -3,9 +3,8 @@ title: Viser Gradio Embed
 emoji: 🚀
 colorFrom: blue
 colorTo: pink
-sdk: gradio
-sdk_version: 5.23.1
-app_file: app.py
+sdk: docker
+app_port: 7860
 pinned: false
 ---
 
