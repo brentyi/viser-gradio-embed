@@ -30,7 +30,7 @@ class ViserProxyManager:
         self._min_port = min_local_port
         self._max_port = max_local_port
         self._server_from_session_hash: dict[str, viser.ViserServer] = {}
-        self._last_port = min_local_port - 1  # Track last port tried
+        self._last_port = self._min_port - 1  # Track last port tried
 
         @app.get("/viser/{server_id}/{proxy_path:path}")
         async def proxy(request: Request, server_id: str, proxy_path: str):
