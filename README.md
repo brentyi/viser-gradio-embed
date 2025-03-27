@@ -18,7 +18,7 @@ visualizations into a [Gradio](https://www.gradio.app/) application.
 
 ## Deploying on HuggingFace Spaces
 
-**[ [Live example](https://brentyi-viser-gradio-embed.hf.space/) ]**
+**[ [Live example](https://huggingface.co/spaces/brentyi/viser-gradio-embed) ]**
 
 This repository should work out-of-the-box with HF Spaces via Docker.
 
