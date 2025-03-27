@@ -14,7 +14,6 @@ class ViserProxyManager:
     as well as proxying HTTP and WebSocket requests to the appropriate Viser server.
 
     Args:
-        app: The FastAPI application to which the proxy routes will be added.
         min_local_port: Minimum local port number to use for Viser servers. Defaults to 8000.
             These ports are used only for internal communication and don't need to be publicly exposed.
         max_local_port: Maximum local port number to use for Viser servers. Defaults to 9000.
@@ -23,14 +22,24 @@ class ViserProxyManager:
 
     def __init__(
         self,
-        app: FastAPI,
         min_local_port: int = 8000,
         max_local_port: int = 9000,
     ) -> None:
         self._min_port = min_local_port
         self._max_port = max_local_port
+
+    def setup(
+        self,
+        app: FastAPI,
+    ) -> None:
+        """Set up the Viser proxy manager with the given FastAPI application.
+        This should be called after `demo.launch(prevent_thread_lock=True)`.
+
+        Args:
+            app: The FastAPI application to which the proxy routes will be added.
+        """
         self._server_from_session_hash: dict[str, viser.ViserServer] = {}
-        self._last_port = min_local_port - 1  # Track last port tried
+        self._last_port = self._min_port - 1  # Track last port tried
 
         @app.get("/viser/{server_id}/{proxy_path:path}")
         async def proxy(request: Request, server_id: str, proxy_path: str):

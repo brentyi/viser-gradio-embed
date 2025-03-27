@@ -8,8 +8,7 @@ from viser_proxy_manager import ViserProxyManager
 
 
 def main() -> None:
-    app = fastapi.FastAPI()
-    viser_manager = ViserProxyManager(app)
+    viser_manager = ViserProxyManager()
 
     # Create a Gradio interface with title, iframe, and buttons
     with gr.Blocks(title="Viser Viewer") as demo:
@@ -28,9 +27,16 @@ def main() -> None:
             # Use the request's base URL if available
             host = request.headers["host"]
 
+            # Determine protocol (use HTTPS for HuggingFace Spaces or other secure environments)
+            protocol = (
+                "https"
+                if request.headers.get("x-forwarded-proto") == "https"
+                else "http"
+            )
+
             return f"""
             <div style="border: 2px solid #ccc; padding: 10px;">
-                <iframe src="http://{host}/viser/{request.session_hash}/" width="100%" height="500px" frameborder="0"></iframe>
+                <iframe src="{protocol}://{host}/viser/{request.session_hash}/" width="100%" height="500px" frameborder="0"></iframe>
             </div>
             """
 
@@ -56,8 +62,9 @@ def main() -> None:
             assert request.session_hash is not None
             viser_manager.stop_server(request.session_hash)
 
-    app = gr.mount_gradio_app(app, demo, path="/")
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    demo.launch(prevent_thread_lock=True)
+    viser_manager.setup(demo.app)
+    demo.block_thread()
 
 
 if __name__ == "__main__":
