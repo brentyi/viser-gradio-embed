@@ -1,4 +1,4 @@
-viser==0.2.23
+viser>=0.2.23
 gradio==5.23.1
 fastapi==0.115.11
 uvicorn==0.34.0
