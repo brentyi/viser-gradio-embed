@@ -19,6 +19,7 @@ class ViserProxyManager:
             These ports are used only for internal communication and don't need to be publicly exposed.
         max_local_port: Maximum local port number to use for Viser servers. Defaults to 9000.
             These ports are used only for internal communication and don't need to be publicly exposed.
+        max_websocket_message_size_bytes: Maximum size of WebSocket messages in bytes. Defaults to 32 MB.
     """
 
     def __init__(
@@ -26,11 +27,13 @@ class ViserProxyManager:
         app: FastAPI,
         min_local_port: int = 8000,
         max_local_port: int = 9000,
+        max_websocket_message_size_bytes: int = 32_000_000,
     ) -> None:
         self._min_port = min_local_port
         self._max_port = max_local_port
         self._server_from_session_hash: dict[str, viser.ViserServer] = {}
         self._last_port = self._min_port - 1  # Track last port tried
+        self._max_websocket_message_size_bytes = max_websocket_message_size_bytes
 
         @app.get("/viser/{server_id}/{proxy_path:path}")
         async def proxy(request: Request, server_id: str, proxy_path: str):
@@ -96,7 +99,9 @@ class ViserProxyManager:
 
             try:
                 # Connect to the target WebSocket
-                async with websockets.connect(target_ws_url) as ws_target:
+                async with websockets.connect(
+                    target_ws_url, max_size=self._max_websocket_message_size_bytes
+                ) as ws_target:
                     # Create tasks for bidirectional communication
                     async def forward_to_target():
                         """Forward messages from the client to the target WebSocket."""
