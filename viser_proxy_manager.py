@@ -83,7 +83,13 @@ class ViserProxyManager:
         @app.websocket("/viser/{server_id}")
         async def websocket_proxy(websocket: WebSocket, server_id: str):
             """Proxy WebSocket connections to the appropriate Viser server."""
-            await websocket.accept()
+            # Parse client's requested subprotocols
+            client_subprotocols = websocket.headers.get(
+                "sec-websocket-protocol", ""
+            ).split(",")
+            client_subprotocols = [
+                p.strip() for p in client_subprotocols if len(p.strip()) > 0
+            ]
 
             server = self._server_from_session_hash.get(server_id)
             if server is None:
@@ -92,15 +98,35 @@ class ViserProxyManager:
 
             # Determine target WebSocket URL
             target_ws_url = f"ws://127.0.0.1:{server.get_port()}"
-
-            if not target_ws_url:
-                await websocket.close(code=1008, reason="Not Found")
-                return
-
             try:
-                # Connect to the target WebSocket
+                # First connect to the target server to determine which subprotocol it selects
+                selected_protocol = None
+
+                # Only attempt subprotocol negotiation if client requested any
+                if client_subprotocols:
+                    try:
+                        async with websockets.connect(
+                            target_ws_url,
+                            subprotocols=client_subprotocols,  # type: ignore
+                            max_size=self._max_websocket_message_size_bytes,
+                        ) as ws:
+                            # Get the selected protocol from the server
+                            selected_protocol = ws.subprotocol
+                    except Exception:
+                        # If connection fails, we'll try again without subprotocol negotiation
+                        pass
+
+                # Now accept the client connection with the protocol selected by the target server
+                if selected_protocol is not None:
+                    await websocket.accept(subprotocol=selected_protocol)
+                else:
+                    await websocket.accept()
+
+                # Establish the main connection to the target server
                 async with websockets.connect(
-                    target_ws_url, max_size=self._max_websocket_message_size_bytes
+                    target_ws_url,
+                    max_size=self._max_websocket_message_size_bytes,
+                    subprotocols=client_subprotocols if client_subprotocols else None,  # type: ignore
                 ) as ws_target:
                     # Create tasks for bidirectional communication
                     async def forward_to_target():
